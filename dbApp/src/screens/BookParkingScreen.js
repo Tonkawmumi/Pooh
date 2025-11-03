@@ -5,7 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-// ✅ Constants สำหรับ rates
+//  Constants สำหรับ rates
 const RATES = {
   hourly: { price: 40, label: 'Hourly', display: '40 baht/hour' },
   daily: { price: 250, label: 'Daily', display: '250 baht/day' },
@@ -40,18 +40,18 @@ const BookParkingScreen = ({ navigation, route }) => {
 
   const hasSetMonthlyTimes = useRef(false);
 
-  // ✅ ใช้ useMemo สำหรับ rates array
+  //  ใช้ useMemo สำหรับ rates array
   const rates = useMemo(() => [
     { id: 'hourly', label: RATES.hourly.label, price: RATES.hourly.display },
     { id: 'daily', label: RATES.daily.label, price: RATES.daily.display },
     { id: 'monthly', label: RATES.monthly.label, price: RATES.monthly.display }
   ], []);
 
-  // ✅ ใช้ useMemo สำหรับ options
+  //  ใช้ useMemo สำหรับ options
   const hourOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
   const dayOptions = useMemo(() => Array.from({ length: 7 }, (_, i) => i + 1), []);
 
-  // ✅ แก้ไข: Logic คำนวณเวลาออก สำหรับ hourly และ daily
+  //  Logic คำนวณเวลาออก สำหรับ hourly และ daily
   useEffect(() => {
     if (selectedRate === 'hourly') {
       const entryDateTime = new Date(entryDate);
@@ -77,7 +77,7 @@ const BookParkingScreen = ({ navigation, route }) => {
         return prev.toDateString() === newDateString ? prev : new Date(newExit);
       });
       
-      // ✅ แก้ไข: สำหรับ daily booking ให้ exitTime เท่ากับ entryTime
+      // สำหรับ daily booking ให้ exitTime เท่ากับ entryTime
       setExitTime(prev => {
         const newTimeString = entryTime.toTimeString();
         return prev.toTimeString() === newTimeString ? prev : new Date(entryTime);
@@ -85,7 +85,7 @@ const BookParkingScreen = ({ navigation, route }) => {
     }
   }, [entryDate, entryTime, durationHours, durationDays, selectedRate]);
 
-  // ✅ แก้ไข: Logic คำนวณเวลาออก สำหรับ monthly
+  // Logic คำนวณเวลาออก สำหรับ monthly
   useEffect(() => {
     if (selectedRate === 'monthly') {
       const newExit = new Date(entryDate);
@@ -102,7 +102,7 @@ const BookParkingScreen = ({ navigation, route }) => {
         defaultEntryTime.setHours(0, 0, 0, 0);
         setEntryTime(defaultEntryTime);
         
-        // ✅ แก้ไข: สำหรับ monthly ให้ exitTime เท่ากับ entryTime
+        //  สำหรับ monthly ให้ exitTime เท่ากับ entryTime
         const defaultExitTime = new Date(entryDate);
         defaultExitTime.setHours(0, 0, 0, 0);
         setExitTime(defaultExitTime);
@@ -115,7 +115,7 @@ const BookParkingScreen = ({ navigation, route }) => {
     }
   }, [entryDate, durationMonths, selectedRate]);
 
-  // ✅ ใช้ constants ในการคำนวณราคา
+  //  ใช้ constants ในการคำนวณราคา
   const calculatePrice = useCallback(() => {
     if (!selectedRate) return 0;
     switch (selectedRate) {
@@ -165,7 +165,7 @@ const BookParkingScreen = ({ navigation, route }) => {
       entryTime.getMinutes()
     );
 
-    // ✅ แก้ไข: เพิ่ม tolerance สำหรับ daily/monthly
+    //  เพิ่ม tolerance สำหรับ daily/monthly
     const tolerance = (selectedRate === 'daily' || selectedRate === 'monthly') ? 0 : 60000; // 1 minute for hourly
     if (entryDateTime < new Date(now.getTime() - tolerance)) {
       Alert.alert('Error', 'Entry date/time cannot be in the past.');
@@ -190,7 +190,7 @@ const BookParkingScreen = ({ navigation, route }) => {
       bookingDate: toLocalISOString(new Date()), 
       licensePlate: bookingType === 'resident' ? residentLicensePlate : undefined,
       entryTime: formatTime(entryTime),
-      // ✅ แก้ไข: สำหรับ daily และ monthly ให้ใช้เวลาเดียวกับ entryTime
+      // สำหรับ daily และ monthly ให้ใช้เวลาเดียวกับ entryTime
       exitTime: selectedRate === 'hourly' ? formatTime(exitTime) : formatTime(entryTime),
     };
 
@@ -217,7 +217,7 @@ const BookParkingScreen = ({ navigation, route }) => {
     navigation.navigate('BookingType', { username, residentLicensePlate });
   }, [navigation, username, residentLicensePlate]);
 
-  // ✅ Component สำหรับเลือกชั่วโมง (แบบง่าย)
+  // Component สำหรับเลือกชั่วโมง 
   const HourlyDurationSelector = () => (
     <View style={styles.durationCard}>
       <Text style={styles.durationLabel}>Parking Duration: {durationHours} hour{durationHours > 1 ? 's' : ''}</Text>
@@ -249,7 +249,7 @@ const BookParkingScreen = ({ navigation, route }) => {
     </View>
   );
 
-  // ✅ Component สำหรับเลือกวัน (แบบง่าย)
+  // Component สำหรับเลือกวัน
   const DailyDurationSelector = () => (
     <View style={styles.durationCard}>
       <Text style={styles.durationLabel}>Parking Duration: {durationDays} day{durationDays > 1 ? 's' : ''}</Text>
@@ -597,7 +597,6 @@ const styles = StyleSheet.create({
   selectedDurationText: { 
     color: 'white' 
   },
-  // ✅ สไตล์ใหม่สำหรับ Duration Selector (แบบง่าย)
   durationCard: {
     backgroundColor: '#f8f8f8',
     borderRadius: 16,

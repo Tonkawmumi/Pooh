@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, 
-    KeyboardAvoidingView, Platform, TextInput, ActivityIndicator 
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, TextInput, ActivityIndicator 
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { db } from '../firebaseConfig'; 
@@ -72,9 +70,9 @@ const VisitorControlScreen = ({ route, navigation }) => {
             }
         }
         else if (bookingData.rateType === 'daily') {
-            const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime || '00:00'}`);
-            const exitDateTime = new Date(`${bookingData.exitDate}T23:59`);
-            
+           const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime || '00:00'}`);
+            // ใช้เวลาจริงจาก exitTime 
+            const exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime || '23:59'}`);
             if (now >= entryDateTime && now <= exitDateTime) {
                 setIsBarrierEnabled(true);
             } else {
@@ -82,9 +80,8 @@ const VisitorControlScreen = ({ route, navigation }) => {
             }
         }
         else if (bookingData.rateType === 'monthly') {
-            const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime || '00:00'}`);
-            const exitDateTime = new Date(`${bookingData.exitDate}T23:59`);
-            
+           const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime || '00:00'}`);
+            const exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime || '23:59'}`);
             if (now >= entryDateTime && now <= exitDateTime) {
                 setIsBarrierEnabled(true);
             } else {
@@ -100,13 +97,15 @@ const VisitorControlScreen = ({ route, navigation }) => {
                 setPayFineStatus(payStatus);
 
                 const data = bookingData; 
+                const now = new Date();
+
                 if (data.rateType === 'hourly') {
-                    const exitDateTime = new Date(`${data.exitDate}T${data.exitTime}`);
-                    const now = new Date();
+                    const exitDateTime = new Date(`${data.exitDate}T${data.exitTime || '23:59'}`); 
                     setBarrierLocked(now > exitDateTime && payStatus !== 'paid');
                 } 
                 else if (data.rateType === 'daily' || data.rateType === 'monthly') {
-                    setBarrierLocked(snapshot.exists() && payStatus !== 'paid');
+                    const exitDateTime = new Date(`${data.exitDate}T${data.exitTime || '23:59'}`);
+                    setBarrierLocked(now > exitDateTime && payStatus !== 'paid');
                 }
 
                 checkBarrierAccessTime(data);
@@ -447,22 +446,6 @@ const VisitorControlScreen = ({ route, navigation }) => {
                     <Text style={styles.sessionLabel}>Session ID:</Text>
                     <Text style={styles.sessionValue}>{sessionId || 'N/A'}</Text>
                 </View>
-                
-                <View style={styles.timeInfoContainer}>
-                    <Ionicons name="time-outline" size={16} color="#FF9800" />
-                    <Text style={styles.timeInfoText}>
-                        Barrier access available only during booked period:
-                    </Text>
-                    {bookingData.rateType === 'hourly' ? (
-                        <Text style={styles.timeDetailText}>
-                            {formatDate(bookingData.entryDate)} {bookingData.entryTime} - {formatDate(bookingData.exitDate)} {bookingData.exitTime}
-                        </Text>
-                    ) : (
-                        <Text style={styles.timeDetailText}>
-                            {formatDate(bookingData.entryDate)} {bookingData.entryTime || '00:00'} - {formatDate(bookingData.exitDate)} 23:59
-                        </Text>
-                    )}
-                </View>
             </View>
             
             <View style={styles.controlCard}>
@@ -505,16 +488,33 @@ const VisitorControlScreen = ({ route, navigation }) => {
                         </View>
                     </TouchableOpacity>
                 </View>
-                
-                {(!isBarrierEnabled || barrierLocked) && (
-                    <View style={styles.warningContainer}>
-                        <Ionicons name="warning" size={16} color="#FF6B6B" />
-                        <Text style={styles.warningText}>
-                            {!isBarrierEnabled 
-                                ? "Barrier access is currently unavailable. Please check your booking period." 
-                                : "Please pay the fine first to unlock barrier control."
-                            }
+
+                {/* 1. ถ้า Barrier ถูกล็อก (ติดค่าปรับ) */}
+                {barrierLocked && (
+                    <View style={[styles.timeInfoContainer, styles.payFineWarning]}>
+                        <Ionicons name="warning-outline" size={16} color="#D32F2F" />
+                        <Text style={[styles.timeInfoText, styles.payFineWarningText]}>
+                            Please complete the fine payment to unlock the barrier controls.
                         </Text>
+                    </View>
+                )}
+
+                {/* 2. ถ้าไม่ติดค่าปรับ แต่ยังไม่ถึงเวลา */}
+                {!barrierLocked && !isBarrierEnabled && (
+                    <View style={styles.timeInfoContainer}>
+                        <Ionicons name="time-outline" size={16} color="#FF9800" />
+                        <Text style={styles.timeInfoText}>
+                            Barrier access available only during booked period:
+                        </Text>
+                        {bookingData.rateType === 'hourly' ? (
+                            <Text style={styles.timeDetailText}>
+                                {formatDate(bookingData.entryDate)} {bookingData.entryTime} - {formatDate(bookingData.exitDate)} {bookingData.exitTime}
+                            </Text>
+                        ) : (
+                            <Text style={styles.timeDetailText}>
+                                {formatDate(bookingData.entryDate)} {bookingData.entryTime || '00:00'} - {formatDate(bookingData.exitDate)} 23:59
+                            </Text>
+                        )}
                     </View>
                 )}
             </View>
@@ -642,6 +642,14 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#FFB74D',
+    },
+    payFineWarning: {
+        backgroundColor: '#FFEBEE', // สีแดงอ่อน
+        borderColor: '#FFCDD2', // ขอบสีแดง
+    },
+    payFineWarningText: {
+        color: '#D32F2F', // สีแดงเข้ม
+        fontWeight: 'bold',
     },
     timeInfoText: {
         color: '#E65100',

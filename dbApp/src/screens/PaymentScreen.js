@@ -4,7 +4,6 @@ import { db } from '../firebaseConfig';
 import { ref, update, get, push, child, onValue } from 'firebase/database';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// --- Helper Functions ---
 const toLocalISOString = (date) => {
   if (!date || isNaN(date.getTime())) return null;
   const year = date.getFullYear();
@@ -17,7 +16,6 @@ const formatTime = (time) => {
   if (!time || isNaN(time.getTime())) return null;
   return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 };
-// --- สิ้นสุด Helper Functions ---
 
 const PaymentScreen = ({ navigation, route }) => {
   const { username, bookingData, selectedSlot, selectedFloor, bookingType } = route.params;
@@ -31,7 +29,6 @@ const PaymentScreen = ({ navigation, route }) => {
   const [originalPrice, setOriginalPrice] = useState(0);
   const [discountedPrice, setDiscountedPrice] = useState(0);
 
-  // Recalculate exit time for hourly bookings
   useEffect(() => {
     if (
       bookingData.rateType === 'hourly' &&
@@ -230,12 +227,21 @@ const PaymentScreen = ({ navigation, route }) => {
 
       if (localBookingData.rateType === 'hourly') {
         slotDate = localBookingData.entryDate;
-        const startTime = localBookingData.entryTime || '00:00';
-        const endTime = localBookingData.exitTime || '23:59';
+        const startTime = localBookingData.entryTime; 
+        const endTime = localBookingData.exitTime; 
         slotTimeRange = `${startTime}-${endTime}`;
-      } else if (localBookingData.rateType === 'daily' || localBookingData.rateType === 'monthly') {
+        
+      } else if (localBookingData.rateType === 'daily') { 
         slotDate = `${localBookingData.entryDate} - ${localBookingData.exitDate}`;
-        slotTimeRange = '00:00-23:59';
+        
+        // ดึงเวลาจริงมาใช้
+        const startTime = localBookingData.entryTime; 
+        const endTime = localBookingData.exitTime;
+        slotTimeRange = `${startTime}-${endTime}`; // ใช้เวลาจริง
+
+      } else if (localBookingData.rateType === 'monthly') {
+        slotDate = `${localBookingData.entryDate} - ${localBookingData.exitDate}`;
+        slotTimeRange = '00:00-23:59'; 
       }
 
       const usernameToSave =
@@ -277,7 +283,6 @@ const PaymentScreen = ({ navigation, route }) => {
           ? residentLicense || '-'
           : localBookingData.visitorInfo?.licensePlate || '-';
 
-      // ✅ แก้ไขส่วนนี้: ใช้เวลาจริงจาก localBookingData
       const newBooking = {
         ...localBookingData,
         id: newBookingId,
@@ -288,8 +293,8 @@ const PaymentScreen = ({ navigation, route }) => {
         floor: selectedFloor,
         entryDate,
         exitDate,
-        entryTime: localBookingData.entryTime, // ใช้เวลาจริง
-        exitTime: localBookingData.exitTime,   // ใช้เวลาจริง
+        entryTime: localBookingData.entryTime,
+        exitTime: localBookingData.exitTime,
         bookingDate,
         paymentStatus: 'paid',
         paymentDate: bookingDate,

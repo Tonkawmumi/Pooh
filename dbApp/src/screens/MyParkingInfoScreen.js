@@ -195,7 +195,6 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
         }
     };
 
-    // สีของคูปอง
     const getDiscountColor = (discountType) => {
         switch (discountType) {
             case 'hourly': return '#bb489cff';
@@ -554,8 +553,20 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* แสดงข้อมูลช่วงเวลาจองเมื่อปุ่ม Barrier ใช้งานไม่ได้ */}
-                        {!isBarrierEnabled && bookingData.bookingType !== 'visitor' && (
+                       {/* แสดงข้อมูลช่วงเวลาจองเมื่อปุ่ม Barrier ใช้งานไม่ได้ */}
+
+                        {/* 1. ถ้าปุ่ม 'Pay Fine' แสดงขึ้นมา */}
+                        {showPayFineButton && bookingData.bookingType !== 'visitor' && (
+                            <View style={[styles.timeInfoContainer, styles.payFineWarning]}>
+                                <Ionicons name="warning-outline" size={16} color="#D32F2F" />
+                                <Text style={[styles.timeInfoText, styles.payFineWarningText]}>
+                                    Please complete the fine payment to unlock the barrier controls.
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* 2. ถ้าปุ่ม 'Pay Fine' ไม่แสดง และปุ่ม Barrier ใช้งานไม่ได้ */}
+                        {!showPayFineButton && !isBarrierEnabled && bookingData.bookingType !== 'visitor' && (
                             <View style={styles.timeInfoContainer}>
                                 <Ionicons name="time-outline" size={16} color="#FF9800" />
                                 <Text style={styles.timeInfoText}>
@@ -823,7 +834,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 14,
     },
-    // 🔥 เพิ่มสไตล์ใหม่สำหรับแสดงข้อมูลเวลา
     timeInfoContainer: {
         flexDirection: 'column',
         alignItems: 'center',
@@ -833,6 +843,14 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#FFB74D',
+    },
+    payFineWarning: {
+        backgroundColor: '#FFEBEE', // สีแดงอ่อน
+        borderColor: '#FFCDD2', // ขอบสีแดง
+    },
+    payFineWarningText: {
+        color: '#D32F2F', // สีแดงเข้ม
+        fontWeight: 'bold',
     },
     timeInfoText: {
         color: '#E65100',

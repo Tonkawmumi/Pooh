@@ -18,22 +18,19 @@ const PayFineScreen = ({ route, navigation }) => {
         return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     };
 
-    // ✅ แก้ไข: คำนวณค่าปรับใหม่
+    // คำนวณค่าปรับ
     const calculateFine = () => {
         if (!bookingData.exitDate) return;
 
         const now = new Date();
         let exitDateTime;
 
-        // ✅ แก้ไข: ใช้ exitTime จริงสำหรับทุกประเภทการจอง
+        // ใช้ exitTime จริงสำหรับทุกประเภทการจอง
         if (bookingData.rateType === 'hourly' && bookingData.exitTime) {
-            // รายชั่วโมง: ใช้ exitDate + exitTime จริง
             exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime}`);
         } else if (bookingData.rateType === 'daily' && bookingData.exitTime) {
-            // รายวัน: ใช้ exitDate + exitTime จริง
             exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime}`);
         } else if (bookingData.rateType === 'monthly' && bookingData.exitTime) {
-            // รายเดือน: ใช้ exitDate + exitTime จริง
             exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime}`);
         } else {
             // Fallback: ถ้าไม่มี exitTime ให้ใช้ 23:59
@@ -55,7 +52,7 @@ const PayFineScreen = ({ route, navigation }) => {
         const price = bookingData.price ? parseFloat(bookingData.price) : 0;
         setOriginalPrice(price);
 
-        let calculatedFineAmount = 0; // ✅ แก้ไข: ประกาศตัวแปรก่อนใช้
+        let calculatedFineAmount = 0; // ประกาศตัวแปรก่อนใช้
 
         if (rounds === 0) {
             calculatedFineAmount = 0;
@@ -71,7 +68,7 @@ const PayFineScreen = ({ route, navigation }) => {
 
         console.log('Overdue Minutes:', minutesOverdue);
         console.log('Fine Rounds:', rounds);
-        console.log('Fine Amount:', calculatedFineAmount); // ✅ แก้ไข: ใช้ตัวแปรที่ประกาศแล้ว
+        console.log('Fine Amount:', calculatedFineAmount); // ใช้ตัวแปรที่ประกาศแล้ว
     };
 
     // ดึง status Prompay จาก Firebase แบบ realtime
@@ -101,7 +98,7 @@ const PayFineScreen = ({ route, navigation }) => {
                 ? fineAmount
                 : parseFloat(fineAmount.toFixed(2));
 
-            // ✅ แก้ไข: ใช้เวลาจริงสำหรับทุกประเภทการจอง
+            // ใช้เวลาจริงสำหรับทุกประเภทการจอง
             const payFineData = {
                 id: bookingData.id,
                 username: bookingData.username || '',
@@ -162,7 +159,7 @@ const PayFineScreen = ({ route, navigation }) => {
         }
     };
 
-    // ✅ เพิ่ม: ฟังก์ชันแสดง Due Time ตามประเภทการจอง
+    // ฟังก์ชันแสดง Due Time ตามประเภทการจอง
     const renderDueTime = () => {
         if (bookingData.rateType === 'hourly') {
             return `${formatDate(bookingData.exitDate)} at ${bookingData.exitTime || '-'}`;
@@ -336,7 +333,6 @@ const PayFineScreen = ({ route, navigation }) => {
     );
 };
 
-// Styles เหมือนเดิม...
 const styles = StyleSheet.create({
     container: {
         flex: 1,

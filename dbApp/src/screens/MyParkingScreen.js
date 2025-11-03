@@ -67,7 +67,7 @@ const MyParkingScreen = ({ route, navigation }) => {
             item.message === newNotif.message &&
             item.slotId === newNotif.slotId &&
             item.username === newNotif.username &&
-            Math.abs(now - (item.timestamp || 0)) < 10 * 60 * 1000 // 10 นาที
+            Math.abs(now - (item.timestamp || 0)) < 10 * 60 * 1000
           ) {
             duplicate = true;
           }
@@ -96,8 +96,7 @@ const MyParkingScreen = ({ route, navigation }) => {
     }
   };
 
-  // Logic การย้ายที่จอด
-
+  // --- Logic การย้ายที่จอด ---
   // ฟังก์ชันสำหรับค้นหาช่องจอด
   const findRandomAvailableSlot = async (bookingToMove) => {
     try {
@@ -343,7 +342,7 @@ const MyParkingScreen = ({ route, navigation }) => {
         bookingType: oldBooking.bookingType,
         slotId: newSlot.slotId, //  ใช้ slotId ใหม่
         floor: newSlot.floor, //  ใช้ floor ใหม่
-        licensePlate: oldBooking.visitorInfo?.licensePlate || oldBooking.licensePlate, // ⬅️ เพิ่มบรรทัดนี้
+        licensePlate: oldBooking.visitorInfo?.licensePlate || oldBooking.licensePlate,
         date: createdDate,
         time: createdTime,
         read: false,
@@ -359,10 +358,10 @@ const MyParkingScreen = ({ route, navigation }) => {
          "Parking Relocated Successfully",
           `Your booking has been moved to Slot ${newSlot.slotId} (${newSlot.floor})` //  แสดง slot ใหม่
       );
-      setShowParkingProblemModal(false); // <-- Modal ปิด
+      setShowParkingProblemModal(false);
       setOriginalBooking(null); 
       setRelocationSlot(null);
-      fetchBookings(); // <-- โหลดข้อมูลใหม่
+      fetchBookings();
 
     } catch (error) {
       console.error("Error relocating booking:", error);
@@ -697,7 +696,7 @@ const MyParkingScreen = ({ route, navigation }) => {
     // 2. ค้นหาช่องจอดใหม่ (ใช้ฟังก์ชันเดียวกับ Demo)
     const newSlot = await findRandomAvailableSlot(bookingToMove);
 
-    // [✅ FIXED] สร้างข้อความ Notification ใหม่ และเตรียมอัปเดต
+    // สร้างข้อความ Notification ใหม่ และเตรียมอัปเดต
     let notificationMessage = "";
 
     if (!newSlot) {
@@ -714,14 +713,12 @@ const MyParkingScreen = ({ route, navigation }) => {
       setRelocationSlot(newSlot);
     }
     
-    // 4. มาร์ค notification นี้ว่า "จัดการแล้ว", "อ่านแล้ว" และ "อัปเดตข้อความ"
     await update(ref(db, `notifications/${problemNotification.id}`), {
       handled: true,
-      read: true, // <-- เพิ่ม read: true เพื่อให้นับในกระดิ่ง
-      message: notificationMessage, // <-- อัปเดต message ใน Firebase
+      read: true,
+      message: notificationMessage, // อัปเดต message ใน Firebase
     });
     
-    // 5. แสดง Modal
     setShowParkingProblemModal(true);
   };
 
@@ -757,7 +754,7 @@ const MyParkingScreen = ({ route, navigation }) => {
         .filter(
           ([id, n]) => n.username === username || n.visitorUsername === username
         )
-        .map(([id, n]) => ({ id, ...n })); // เราต้องการ 'id' เพื่ออัปเดต 'handled'
+        .map(([id, n]) => ({ id, ...n })); // ใช้ 'id' เพื่ออัปเดต 'handled'
 
       const unread = userNotifications.filter((n) => !n.read).length;
       setUnreadCount(unread);
@@ -774,7 +771,7 @@ const MyParkingScreen = ({ route, navigation }) => {
   };
 
 
-  // Booking Reminder Logic - แก้ไขแล้วให้ Daily ใช้เหมือน Hourly
+  // Booking Reminder Logic
   const showBookingReminder = async (booking) => {
     if (activeReminderBookings.current.has(booking.id)) return;
     activeReminderBookings.current.add(booking.id);
@@ -855,7 +852,7 @@ const MyParkingScreen = ({ route, navigation }) => {
           await showBookingReminder(booking);
         }
       } 
-      // สำหรับ Monthly ยังใช้ logic เดิม (แจ้งเตือน 23:50 น. ของวันสิ้นสุด)
+      // สำหรับ Monthly แจ้งเตือนเวลา 23:50 ของวันสิ้นสุด
       else if (
         booking.rateType === "monthly" &&
         booking.exitDate
