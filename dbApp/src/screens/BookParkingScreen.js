@@ -1,9 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Dimensions } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+// ✅ Constants สำหรับ rates
+const RATES = {
+  hourly: { price: 40, label: 'Hourly', display: '40 baht/hour' },
+  daily: { price: 250, label: 'Daily', display: '250 baht/day' },
+  monthly: { price: 3000, label: 'Monthly', display: '3,000 baht/month' }
+};
+
 const toLocalISOString = (date) => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -30,32 +38,34 @@ const BookParkingScreen = ({ navigation, route }) => {
   const [pickerMode, setPickerMode] = useState(null); 
   const [showPicker, setShowPicker] = useState(false);
 
-  const scrollViewRef = useRef(null);
-  const dailyScrollViewRef = useRef(null);
   const hasSetMonthlyTimes = useRef(false);
 
-  const rates = [
-    { id: 'hourly', label: 'Hourly', price: '40 baht/hour' },
-    { id: 'daily', label: 'Daily', price: '250 baht/day' },
-    { id: 'monthly', label: 'Monthly', price: '3,000 baht/month' }
-  ];
+  // ✅ ใช้ useMemo สำหรับ rates array
+  const rates = useMemo(() => [
+    { id: 'hourly', label: RATES.hourly.label, price: RATES.hourly.display },
+    { id: 'daily', label: RATES.daily.label, price: RATES.daily.display },
+    { id: 'monthly', label: RATES.monthly.label, price: RATES.monthly.display }
+  ], []);
 
-  // --- ✅ แก้ไข: Logic คำนวณเวลาออก สำหรับ hourly และ daily (ป้องกัน infinite loop) ---
+  // ✅ ใช้ useMemo สำหรับ options
+  const hourOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
+  const dayOptions = useMemo(() => Array.from({ length: 7 }, (_, i) => i + 1), []);
+
+  // ✅ แก้ไข: Logic คำนวณเวลาออก สำหรับ hourly และ daily
   useEffect(() => {
     if (selectedRate === 'hourly') {
       const entryDateTime = new Date(entryDate);
       entryDateTime.setHours(entryTime.getHours(), entryTime.getMinutes(), 0, 0);
       const exitDateTime = new Date(entryDateTime.getTime() + durationHours * 60 * 60 * 1000);
       
-      // ✅ ใช้ functional update และเช็คว่าค่าเปลี่ยนจริงๆ ก่อน set
       setExitDate(prev => {
-        const newTime = exitDateTime.getTime();
-        return prev.getTime() === newTime ? prev : new Date(newTime);
+        const newDateString = exitDateTime.toDateString();
+        return prev.toDateString() === newDateString ? prev : new Date(exitDateTime);
       });
       
       setExitTime(prev => {
-        const newTime = exitDateTime.getTime();
-        return prev.getTime() === newTime ? prev : new Date(newTime);
+        const newTimeString = exitDateTime.toTimeString();
+        return prev.toTimeString() === newTimeString ? prev : new Date(exitDateTime);
       });
 
     } else if (selectedRate === 'daily') {
@@ -63,25 +73,28 @@ const BookParkingScreen = ({ navigation, route }) => {
       newExit.setDate(newExit.getDate() + durationDays);
       
       setExitDate(prev => {
-        const newTime = newExit.getTime();
-        return prev.getTime() === newTime ? prev : new Date(newTime);
+        const newDateString = newExit.toDateString();
+        return prev.toDateString() === newDateString ? prev : new Date(newExit);
       });
       
-      // ✅ สร้าง exitTime ใหม่ที่ไม่ depend on state เดิม
-      const newExitTime = new Date(entryTime);
+      // ✅ แก้ไข: สำหรับ daily booking ให้ exitTime เท่ากับ entryTime
       setExitTime(prev => {
-        const newTime = newExitTime.getTime();
-        return prev.getTime() === newTime ? prev : new Date(newTime);
+        const newTimeString = entryTime.toTimeString();
+        return prev.toTimeString() === newTimeString ? prev : new Date(entryTime);
       });
     }
-  }, [entryDate, entryTime.getTime(), durationHours, durationDays, selectedRate]);
+  }, [entryDate, entryTime, durationHours, durationDays, selectedRate]);
 
-  // --- Logic คำนวณเวลาออก สำหรับ monthly ---
+  // ✅ แก้ไข: Logic คำนวณเวลาออก สำหรับ monthly
   useEffect(() => {
     if (selectedRate === 'monthly') {
       const newExit = new Date(entryDate);
       newExit.setMonth(newExit.getMonth() + durationMonths);
-      setExitDate(newExit);
+      
+      setExitDate(prev => {
+        const newDateString = newExit.toDateString();
+        return prev.toDateString() === newDateString ? prev : new Date(newExit);
+      });
       
       // ตั้งค่าเวลา default เพียงครั้งเดียวเมื่อเปลี่ยนเป็น monthly
       if (!hasSetMonthlyTimes.current) {
@@ -89,8 +102,9 @@ const BookParkingScreen = ({ navigation, route }) => {
         defaultEntryTime.setHours(0, 0, 0, 0);
         setEntryTime(defaultEntryTime);
         
-        const defaultExitTime = new Date(newExit);
-        defaultExitTime.setHours(23, 59, 0, 0);
+        // ✅ แก้ไข: สำหรับ monthly ให้ exitTime เท่ากับ entryTime
+        const defaultExitTime = new Date(entryDate);
+        defaultExitTime.setHours(0, 0, 0, 0);
         setExitTime(defaultExitTime);
         
         hasSetMonthlyTimes.current = true;
@@ -101,67 +115,28 @@ const BookParkingScreen = ({ navigation, route }) => {
     }
   }, [entryDate, durationMonths, selectedRate]);
 
-  // ✅ แก้ไข: Auto-scroll to selected hour in vertical picker
-  useEffect(() => {
-    if (scrollViewRef.current && selectedRate === 'hourly' && durationHours) {
-      const scrollPosition = Math.max(0, (durationHours - 1) * 60);
-      
-      const timer = setTimeout(() => {
-        try {
-          scrollViewRef.current?.scrollTo({
-            y: scrollPosition,
-            animated: true
-          });
-        } catch (error) {
-          console.log('Scroll error:', error);
-        }
-      }, 150);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [selectedRate, durationHours]);
-
-  // ✅ แก้ไข: Auto-scroll to selected day in daily picker
-  useEffect(() => {
-    if (dailyScrollViewRef.current && selectedRate === 'daily' && durationDays) {
-      const scrollPosition = Math.max(0, (durationDays - 1) * 60);
-      
-      const timer = setTimeout(() => {
-        try {
-          dailyScrollViewRef.current?.scrollTo({
-            y: scrollPosition,
-            animated: true
-          });
-        } catch (error) {
-          console.log('Scroll error:', error);
-        }
-      }, 150);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [selectedRate, durationDays]);
-
-  const calculatePrice = () => {
+  // ✅ ใช้ constants ในการคำนวณราคา
+  const calculatePrice = useCallback(() => {
     if (!selectedRate) return 0;
     switch (selectedRate) {
       case 'hourly': 
-        return durationHours * 40;
+        return durationHours * RATES.hourly.price;
       case 'daily': 
-        return durationDays * 250;
+        return durationDays * RATES.daily.price;
       case 'monthly':
-        return durationMonths * 3000;
+        return durationMonths * RATES.monthly.price;
       default:
         return 0;
     }
-  };
+  }, [selectedRate, durationHours, durationDays, durationMonths]);
 
-  const formatDate = (date) =>
-    date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const formatDate = useCallback((date) =>
+    date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), []);
 
-  const formatTime = (time) =>
-    time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const formatTime = useCallback((time) =>
+    time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), []);
 
-  const onChangeDateTime = (event, selectedValue) => {
+  const onChangeDateTime = useCallback((event, selectedValue) => {
     setShowPicker(false);
     if (!selectedValue) return;
 
@@ -173,9 +148,9 @@ const BookParkingScreen = ({ navigation, route }) => {
         setEntryTime(selectedValue);
         break;
     }
-  };
+  }, [pickerMode]);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     if (!selectedRate) {
       Alert.alert('Error', 'Please select a parking rate');
       return;
@@ -190,7 +165,9 @@ const BookParkingScreen = ({ navigation, route }) => {
       entryTime.getMinutes()
     );
 
-    if (entryDateTime < now) {
+    // ✅ แก้ไข: เพิ่ม tolerance สำหรับ daily/monthly
+    const tolerance = (selectedRate === 'daily' || selectedRate === 'monthly') ? 0 : 60000; // 1 minute for hourly
+    if (entryDateTime < new Date(now.getTime() - tolerance)) {
       Alert.alert('Error', 'Entry date/time cannot be in the past.');
       return;
     }
@@ -213,7 +190,8 @@ const BookParkingScreen = ({ navigation, route }) => {
       bookingDate: toLocalISOString(new Date()), 
       licensePlate: bookingType === 'resident' ? residentLicensePlate : undefined,
       entryTime: formatTime(entryTime),
-      exitTime: formatTime(exitTime),
+      // ✅ แก้ไข: สำหรับ daily และ monthly ให้ใช้เวลาเดียวกับ entryTime
+      exitTime: selectedRate === 'hourly' ? formatTime(exitTime) : formatTime(entryTime),
     };
 
     if (selectedRate === 'hourly') {
@@ -232,16 +210,76 @@ const BookParkingScreen = ({ navigation, route }) => {
       },
       bookingType
     });
-  };
+  }, [selectedRate, entryDate, entryTime, exitDate, exitTime, durationHours, durationDays, durationMonths, 
+      calculatePrice, formatTime, username, bookingType, residentLicensePlate, visitorInfo, navigation]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     navigation.navigate('BookingType', { username, residentLicensePlate });
-  };
+  }, [navigation, username, residentLicensePlate]);
 
-  // สร้างตัวเลือกชั่วโมงตั้งแต่ 1 ถึง 12
-  const hourOptions = Array.from({ length: 12 }, (_, i) => i + 1);
-  // สร้างตัวเลือกวันตั้งแต่ 1 ถึง 7
-  const dayOptions = Array.from({ length: 7 }, (_, i) => i + 1);
+  // ✅ Component สำหรับเลือกชั่วโมง (แบบง่าย)
+  const HourlyDurationSelector = () => (
+    <View style={styles.durationCard}>
+      <Text style={styles.durationLabel}>Parking Duration: {durationHours} hour{durationHours > 1 ? 's' : ''}</Text>
+      <View style={styles.selectorContainer}>
+        <TouchableOpacity 
+          style={[styles.selectorButton, durationHours <= 1 && styles.selectorButtonDisabled]}
+          onPress={() => setDurationHours(prev => Math.max(1, prev - 1))}
+          disabled={durationHours <= 1}
+        >
+          <Ionicons name="remove" size={24} color={durationHours <= 1 ? '#ccc' : '#B19CD8'} />
+        </TouchableOpacity>
+        
+        <View style={styles.durationDisplay}>
+          <Text style={styles.durationValue}>{durationHours}</Text>
+          <Text style={styles.durationUnit}>hours</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={[styles.selectorButton, durationHours >= 12 && styles.selectorButtonDisabled]}
+          onPress={() => setDurationHours(prev => Math.min(12, prev + 1))}
+          disabled={durationHours >= 12}
+        >
+          <Ionicons name="add" size={24} color={durationHours >= 12 ? '#ccc' : '#B19CD8'} />
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.durationHelpText}>
+        Select duration from 1 to 12 hours
+      </Text>
+    </View>
+  );
+
+  // ✅ Component สำหรับเลือกวัน (แบบง่าย)
+  const DailyDurationSelector = () => (
+    <View style={styles.durationCard}>
+      <Text style={styles.durationLabel}>Parking Duration: {durationDays} day{durationDays > 1 ? 's' : ''}</Text>
+      <View style={styles.selectorContainer}>
+        <TouchableOpacity 
+          style={[styles.selectorButton, durationDays <= 1 && styles.selectorButtonDisabled]}
+          onPress={() => setDurationDays(prev => Math.max(1, prev - 1))}
+          disabled={durationDays <= 1}
+        >
+          <Ionicons name="remove" size={24} color={durationDays <= 1 ? '#ccc' : '#B19CD8'} />
+        </TouchableOpacity>
+        
+        <View style={styles.durationDisplay}>
+          <Text style={styles.durationValue}>{durationDays}</Text>
+          <Text style={styles.durationUnit}>days</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={[styles.selectorButton, durationDays >= 7 && styles.selectorButtonDisabled]}
+          onPress={() => setDurationDays(prev => Math.min(7, prev + 1))}
+          disabled={durationDays >= 7}
+        >
+          <Ionicons name="add" size={24} color={durationDays >= 7 ? '#ccc' : '#B19CD8'} />
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.durationHelpText}>
+        Select duration from 1 to 7 days
+      </Text>
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding">
@@ -307,62 +345,8 @@ const BookParkingScreen = ({ navigation, route }) => {
             {selectedRate === 'hourly' && (
               <>
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Parking Duration (Hours)</Text>
-                  
-                  <View style={styles.durationCard}>
-                    <View style={styles.pickerContainer}>
-                      <View style={styles.pickerFadeTop} />
-                      <View style={styles.pickerSelectionHighlight} />
-                      
-                      <ScrollView
-                        ref={scrollViewRef}
-                        showsVerticalScrollIndicator={false}
-                        snapToInterval={60}
-                        decelerationRate="fast"
-                        contentContainerStyle={styles.pickerScrollContent}
-                        style={styles.pickerScrollView}
-                        onMomentumScrollEnd={(event) => {
-                          const offsetY = event.nativeEvent.contentOffset.y;
-                          const index = Math.max(0, Math.min(Math.round(offsetY / 60), hourOptions.length - 1));
-                          const selectedHour = hourOptions[index];
-                          
-                          if (selectedHour !== undefined && selectedHour !== durationHours) {
-                            setDurationHours(selectedHour);
-                          }
-                        }}
-                      >
-                        <View style={{ height: 120 }} />
-                        {hourOptions.map((hour) => (
-                          <TouchableOpacity
-                            key={hour}
-                            style={styles.pickerItem}
-                            onPress={() => {
-                              const index = hourOptions.indexOf(hour);
-                              scrollViewRef.current?.scrollTo({
-                                y: index * 60,
-                                animated: true
-                              });
-                              setDurationHours(hour);
-                            }}
-                          >
-                            <Text style={[
-                              styles.pickerItemText,
-                              durationHours === hour && styles.pickerItemTextSelected
-                            ]}>
-                              {hour}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                        <View style={{ height: 120 }} />
-                      </ScrollView>
-                      
-                      <View style={styles.pickerFadeBottom} />
-                    </View>
-
-                    <Text style={styles.durationHelpText}>
-                      Scroll to select duration 1-12 hours available
-                    </Text>
-                  </View>
+                  <Text style={styles.sectionTitle}>Parking Duration</Text>
+                  <HourlyDurationSelector />
                 </View>
 
                 <View style={styles.section}>
@@ -383,62 +367,8 @@ const BookParkingScreen = ({ navigation, route }) => {
             {selectedRate === 'daily' && (
               <>
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Parking Duration (Days)</Text>
-                  
-                  <View style={styles.durationCard}>
-                    <View style={styles.pickerContainer}>
-                      <View style={styles.pickerFadeTop} />
-                      <View style={styles.pickerSelectionHighlight} />
-                      
-                      <ScrollView
-                        ref={dailyScrollViewRef}
-                        showsVerticalScrollIndicator={false}
-                        snapToInterval={60}
-                        decelerationRate="fast"
-                        contentContainerStyle={styles.pickerScrollContent}
-                        style={styles.pickerScrollView}
-                        onMomentumScrollEnd={(event) => {
-                          const offsetY = event.nativeEvent.contentOffset.y;
-                          const index = Math.max(0, Math.min(Math.round(offsetY / 60), dayOptions.length - 1));
-                          const selectedDay = dayOptions[index];
-                          
-                          if (selectedDay !== undefined && selectedDay !== durationDays) {
-                            setDurationDays(selectedDay);
-                          }
-                        }}
-                      >
-                        <View style={{ height: 120 }} />
-                        {dayOptions.map((day) => (
-                          <TouchableOpacity
-                            key={day}
-                            style={styles.pickerItem}
-                            onPress={() => {
-                              const index = dayOptions.indexOf(day);
-                              dailyScrollViewRef.current?.scrollTo({
-                                y: index * 60,
-                                animated: true
-                              });
-                              setDurationDays(day);
-                            }}
-                          >
-                            <Text style={[
-                              styles.pickerItemText,
-                              durationDays === day && styles.pickerItemTextSelected
-                            ]}>
-                              {day}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                        <View style={{ height: 120 }} />
-                      </ScrollView>
-                      
-                      <View style={styles.pickerFadeBottom} />
-                    </View>
-
-                    <Text style={styles.durationHelpText}>
-                      Scroll to select duration 1-7 days available
-                    </Text>
-                  </View>
+                  <Text style={styles.sectionTitle}>Parking Duration</Text>
+                  <DailyDurationSelector />
                 </View>
 
                 <View style={styles.section}>
@@ -667,83 +597,70 @@ const styles = StyleSheet.create({
   selectedDurationText: { 
     color: 'white' 
   },
+  // ✅ สไตล์ใหม่สำหรับ Duration Selector (แบบง่าย)
   durationCard: {
     backgroundColor: '#f8f8f8',
     borderRadius: 16,
-    padding: 20,
+    padding: 25,
     marginHorizontal: 10,
     borderWidth: 2,
     borderColor: '#e8e8e8',
+    alignItems: 'center',
   },
-  pickerContainer: {
-    height: 300,
-    position: 'relative',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    overflow: 'hidden',
+  durationLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  selectorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     marginBottom: 15,
   },
-  pickerScrollView: {
-    flex: 1,
-  },
-  pickerScrollContent: {
-    alignItems: 'center',
-  },
-  pickerItem: {
-    height: 60,
+  selectorButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
+    borderWidth: 2,
+    borderColor: '#B19CD8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  pickerItemText: {
+  selectorButtonDisabled: {
+    borderColor: '#ccc',
+    backgroundColor: '#f5f5f5',
+  },
+  durationDisplay: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 100,
+  },
+  durationValue: {
     fontSize: 32,
-    fontWeight: '600',
-    color: '#666666',
-  },
-  pickerItemTextSelected: {
-    fontSize: 40,
     fontWeight: 'bold',
     color: '#B19CD8',
   },
-  pickerSelectionHighlight: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    height: 60,
-    marginTop: -30,
-    backgroundColor: 'rgba(177, 156, 216, 0.1)',
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: '#B19CD8',
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-  pickerFadeTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    zIndex: 2,
-    pointerEvents: 'none',
-  },
-  pickerFadeBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    zIndex: 2,
-    pointerEvents: 'none',
+  durationUnit: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
   durationHelpText: {
     fontSize: 12,
     color: '#666',
     textAlign: 'center',
     fontStyle: 'italic',
+    marginTop: 10,
   },
   searchButton: {
     backgroundColor: '#fff',

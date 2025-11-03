@@ -18,43 +18,60 @@ const PayFineScreen = ({ route, navigation }) => {
         return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     };
 
-    // คำนวณค่าปรับ
+    // ✅ แก้ไข: คำนวณค่าปรับใหม่
     const calculateFine = () => {
         if (!bookingData.exitDate) return;
 
         const now = new Date();
-
         let exitDateTime;
 
+        // ✅ แก้ไข: ใช้ exitTime จริงสำหรับทุกประเภทการจอง
         if (bookingData.rateType === 'hourly' && bookingData.exitTime) {
-            // รายชั่วโมง: ใช้ exitDate + exitTime
+            // รายชั่วโมง: ใช้ exitDate + exitTime จริง
+            exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime}`);
+        } else if (bookingData.rateType === 'daily' && bookingData.exitTime) {
+            // รายวัน: ใช้ exitDate + exitTime จริง
+            exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime}`);
+        } else if (bookingData.rateType === 'monthly' && bookingData.exitTime) {
+            // รายเดือน: ใช้ exitDate + exitTime จริง
             exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime}`);
         } else {
-            // รายวันและรายเดือน: ใช้เวลา 23:59 ของ exitDate แล้วเริ่มคิดค่าปรับ 00:01
+            // Fallback: ถ้าไม่มี exitTime ให้ใช้ 23:59
             exitDateTime = new Date(`${bookingData.exitDate}T23:59`);
-            exitDateTime.setMinutes(exitDateTime.getMinutes() + 1); // เริ่มคิดค่าปรับหลัง 00:01
         }
+
+        console.log('Exit DateTime:', exitDateTime);
+        console.log('Now:', now);
+        console.log('Rate Type:', bookingData.rateType);
+        console.log('Exit Time from booking:', bookingData.exitTime);
 
         const minutesOverdue = Math.max(0, Math.floor((now - exitDateTime) / (1000 * 60)));
         setOverdueMinutes(minutesOverdue);
 
-        // คำนวณรอบค่าปรับ (ทุก 15 นาที) - ใช้ logic เดียวกันทุกประเภทการจอง
+        // คำนวณรอบค่าปรับ (ทุก 15 นาที)
         const rounds = Math.ceil(minutesOverdue / 15);
         setFineRounds(rounds);
 
         const price = bookingData.price ? parseFloat(bookingData.price) : 0;
         setOriginalPrice(price);
 
+        let calculatedFineAmount = 0; // ✅ แก้ไข: ประกาศตัวแปรก่อนใช้
+
         if (rounds === 0) {
-            setFineAmount(0);
+            calculatedFineAmount = 0;
         } else {
             const fineMultiplier = Math.pow(2, rounds);
             const calculatedFine = price * fineMultiplier;
-            const finalFine = Number.isInteger(calculatedFine)
+            calculatedFineAmount = Number.isInteger(calculatedFine)
                 ? calculatedFine
                 : parseFloat(calculatedFine.toFixed(2));
-            setFineAmount(finalFine);
         }
+
+        setFineAmount(calculatedFineAmount);
+
+        console.log('Overdue Minutes:', minutesOverdue);
+        console.log('Fine Rounds:', rounds);
+        console.log('Fine Amount:', calculatedFineAmount); // ✅ แก้ไข: ใช้ตัวแปรที่ประกาศแล้ว
     };
 
     // ดึง status Prompay จาก Firebase แบบ realtime
@@ -75,62 +92,54 @@ const PayFineScreen = ({ route, navigation }) => {
     }, [bookingData]);
 
     const handlePaymentSuccess = async () => {
-    try {
-        const now = new Date();
-        const todayDate = now.toISOString().split('T')[0];
-        const nowTime = now.toTimeString().split(' ')[0].substring(0,5);
+        try {
+            const now = new Date();
+            const todayDate = now.toISOString().split('T')[0];
+            const nowTime = now.toTimeString().split(' ')[0].substring(0,5);
 
-        let roundedFineAmount = Number.isInteger(fineAmount)
-            ? fineAmount
-            : parseFloat(fineAmount.toFixed(2));
+            let roundedFineAmount = Number.isInteger(fineAmount)
+                ? fineAmount
+                : parseFloat(fineAmount.toFixed(2));
 
-        // กำหนด entryTime และ exitTime สำหรับ daily และ monthly
-        let entryTimeToSave = bookingData.entryTime || '';
-        let exitTimeToSave = bookingData.exitTime || '';
+            // ✅ แก้ไข: ใช้เวลาจริงสำหรับทุกประเภทการจอง
+            const payFineData = {
+                id: bookingData.id,
+                username: bookingData.username || '',
+                bookingType: bookingData.bookingType || '',
+                rateType: bookingData.rateType || '',
+                entryDate: bookingData.entryDate || '',
+                exitDate: bookingData.exitDate || '',
+                entryTime: bookingData.entryTime || '', // ใช้เวลาจริง
+                exitTime: bookingData.exitTime || '',   // ใช้เวลาจริง
+                floor: bookingData.floor || '',
+                slotId: bookingData.slotId || '',
+                price: bookingData.price || 0,
+                visitorInfo: bookingData.visitorInfo || null,
+                overdueMinutes,
+                rounds: fineRounds,
+                fineAmount: roundedFineAmount,
+                fineIssuedDate: todayDate,
+                payFineDate: todayDate,
+                payFineTime: nowTime,
+                payFineStatus: 'paid'
+            };
 
-        if (bookingData.rateType === 'daily' || bookingData.rateType === 'monthly') {
-            entryTimeToSave = '00:00';
-            exitTimeToSave = '23:59';
+            await set(ref(db, `payFine/${bookingData.id}`), payFineData);
+
+            setPaymentCompleted(true);
+
+            if (onPaid) onPaid();
+
+            Alert.alert(
+                "Payment Successful",
+                `Fine of ${formatNumberWithCommas(roundedFineAmount)} baht has been paid successfully.`,
+                [{ text: "OK", onPress: () => navigation.navigate('MyParking', { username }) }]
+            );
+        } catch (error) {
+            console.error("Payment error:", error);
+            Alert.alert("Error", "Failed to process payment. Please try again.");
         }
-
-        const payFineData = {
-            id: bookingData.id,
-            username: bookingData.username || '',
-            bookingType: bookingData.bookingType || '',
-            rateType: bookingData.rateType || '',
-            entryDate: bookingData.entryDate || '',
-            exitDate: bookingData.exitDate || '',
-            entryTime: entryTimeToSave,
-            exitTime: exitTimeToSave,
-            floor: bookingData.floor || '',
-            slotId: bookingData.slotId || '',
-            price: bookingData.price || 0,
-            visitorInfo: bookingData.visitorInfo || null,
-            overdueMinutes,
-            rounds: fineRounds,
-            fineAmount: roundedFineAmount,
-            fineIssuedDate: todayDate,
-            payFineDate: todayDate,
-            payFineTime: nowTime,
-            payFineStatus: 'paid'
-        };
-
-        await set(ref(db, `payFine/${bookingData.id}`), payFineData);
-
-        setPaymentCompleted(true);
-
-        if (onPaid) onPaid();
-
-        Alert.alert(
-            "Payment Successful",
-            `Fine of ${formatNumberWithCommas(roundedFineAmount)} baht has been paid successfully.`,
-            [{ text: "OK", onPress: () => navigation.navigate('MyParking', { username }) }]
-        );
-    } catch (error) {
-        console.error("Payment error:", error);
-        Alert.alert("Error", "Failed to process payment. Please try again.");
-    }
-};
+    };
 
     const formatTime = (minutes) => {
         if (minutes < 60) return `${minutes} minutes`;
@@ -150,6 +159,15 @@ const PayFineScreen = ({ route, navigation }) => {
             });
         } catch (error) {
             return dateString;
+        }
+    };
+
+    // ✅ เพิ่ม: ฟังก์ชันแสดง Due Time ตามประเภทการจอง
+    const renderDueTime = () => {
+        if (bookingData.rateType === 'hourly') {
+            return `${formatDate(bookingData.exitDate)} at ${bookingData.exitTime || '-'}`;
+        } else {
+            return `${formatDate(bookingData.exitDate)} at ${bookingData.exitTime || '23:59'}`;
         }
     };
 
@@ -186,8 +204,21 @@ const PayFineScreen = ({ route, navigation }) => {
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Due Time:</Text>
                         <Text style={styles.detailValue}>
-                            {formatDate(bookingData.exitDate)} at{' '}
-                            {bookingData.rateType === 'hourly' ? (bookingData.exitTime || '-') : '23:59'}
+                            {renderDueTime()}
+                        </Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Entry Time:</Text>
+                        <Text style={styles.detailValue}>
+                            {bookingData.entryTime || '00:00'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Exit Time:</Text>
+                        <Text style={styles.detailValue}>
+                            {bookingData.exitTime || '23:59'}
                         </Text>
                     </View>
 
@@ -293,7 +324,11 @@ const PayFineScreen = ({ route, navigation }) => {
                     <View style={styles.noFineCard}>
                         <Ionicons name="checkmark-circle" size={40} color="#4CAF50" />
                         <Text style={styles.noFineText}>No Fine Required</Text>
-                        <Text style={styles.noFineSubtext}>Your booking is not overdue.</Text>
+                        <Text style={styles.noFineSubtext}>
+                            {overdueMinutes === 0 
+                                ? "Your booking is not overdue." 
+                                : `Overdue ${formatTime(overdueMinutes)} but no fine calculated.`}
+                        </Text>
                     </View>
                 )}
             </ScrollView>
@@ -301,6 +336,7 @@ const PayFineScreen = ({ route, navigation }) => {
     );
 };
 
+// Styles เหมือนเดิม...
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -415,7 +451,7 @@ const styles = StyleSheet.create({
     },
     totalFineSection: {
         alignItems: 'center',
-         justifyContent: 'center',
+        justifyContent: 'center',
         paddingVertical: 15,
         backgroundColor: '#FFF5F5',
         borderRadius: 10,

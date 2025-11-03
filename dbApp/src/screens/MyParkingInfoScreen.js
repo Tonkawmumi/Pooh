@@ -11,7 +11,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
     const [payFineStatus, setPayFineStatus] = useState(null);
     const [showPayFineButton, setShowPayFineButton] = useState(false);
     const [couponDetails, setCouponDetails] = useState(null);
-    const [isBarrierEnabled, setIsBarrierEnabled] = useState(false); // เพิ่ม state ใหม่
+    const [isBarrierEnabled, setIsBarrierEnabled] = useState(false);
 
     const now = new Date();
 
@@ -52,7 +52,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
 
     const isPaidFine = payFineStatus === 'paid';
 
-    // 🔥 เพิ่ม Logic ตรวจสอบเวลาเพื่อเปิด/ปิดปุ่ม Barrier
+    // Logic ตรวจสอบเวลาเพื่อเปิด/ปิดปุ่ม Barrier
     useEffect(() => {
         const checkBarrierAccessTime = () => {
             // ถ้าเป็น visitor booking ไม่ต้องตรวจสอบเวลา
@@ -81,10 +81,10 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                     setIsBarrierEnabled(false);
                 }
             }
-            // สำหรับ daily - ใช้ entryDate+entryTime และ exitDate+23:59
+            // สำหรับ daily - ใช้ entryDate+entryTime และ exitDate+exitTime จริง
             else if (bookingData.rateType === 'daily') {
                 const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime || '00:00'}`);
-                const exitDateTime = new Date(`${bookingData.exitDate}T23:59`);
+                const exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime || '23:59'}`);
                 
                 // อนุญาตให้ใช้ barrier เฉพาะในช่วงเวลาจอง
                 if (now >= entryDateTime && now <= exitDateTime) {
@@ -93,10 +93,10 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                     setIsBarrierEnabled(false);
                 }
             }
-            // สำหรับ monthly - ใช้ entryDate+entryTime และ exitDate+23:59
+            // สำหรับ monthly - ใช้ entryDate+entryTime และ exitDate+exitTime จริง
             else if (bookingData.rateType === 'monthly') {
                 const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime || '00:00'}`);
-                const exitDateTime = new Date(`${bookingData.exitDate}T23:59`);
+                const exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime || '23:59'}`);
                 
                 // อนุญาตให้ใช้ barrier เฉพาะในช่วงเวลาจอง
                 if (now >= entryDateTime && now <= exitDateTime) {
@@ -172,9 +172,8 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
         };
 
         const checkPayFineDailyMonthly = () => {
-            if ((bookingData.rateType === 'daily' || bookingData.rateType === 'monthly') && bookingData.exitDate) {
-                const [year, month, day] = bookingData.exitDate.split('-').map(Number);
-                const exitDateTime = new Date(year, month - 1, day, 23, 59, 0);
+            if ((bookingData.rateType === 'daily' || bookingData.rateType === 'monthly') && bookingData.exitDate && bookingData.exitTime) {
+                const exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime}`);
                 
                 if (now > exitDateTime) {
                     setShowPayFineButton(true);
@@ -214,17 +213,15 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
             return;
         }
         
-        // 🔥 เพิ่มการตรวจสอบเวลา
+        // เพิ่มการตรวจสอบเวลา
         if (!isBarrierEnabled) {
             let message = "Barrier access is only available during your booked time period.";
             
             // แสดงช่วงเวลาที่จองแบบละเอียด
             if (bookingData.rateType === 'hourly') {
                 message += `\n\nYour booking period:\n${formatDate(bookingData.entryDate)} ${bookingData.entryTime} - ${formatDate(bookingData.exitDate)} ${bookingData.exitTime}`;
-            } else if (bookingData.rateType === 'daily') {
-                message += `\n\nYour booking period:\n${formatDate(bookingData.entryDate)} ${bookingData.entryTime || '00:00'} - ${formatDate(bookingData.exitDate)} 23:59`;
-            } else { // monthly
-                message += `\n\nYour booking period:\n${formatDate(bookingData.entryDate)} ${bookingData.entryTime || '00:00'} - ${formatDate(bookingData.exitDate)} 23:59`;
+            } else {
+                message += `\n\nYour booking period:\n${formatDate(bookingData.entryDate)} ${bookingData.entryTime || '00:00'} - ${formatDate(bookingData.exitDate)} ${bookingData.exitTime || '23:59'}`;
             }
             
             Alert.alert("Barrier Access Not Available", message);
@@ -294,7 +291,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
             let matchingKey = null;
             const bookingTimeRange = `${bookingData.entryTime}-${bookingData.exitTime}`;
 
-            // --- หา matchingKey (เหมือนเดิม) ---
+            // หา matchingKey
             for (const key in slotData) {
                 const parkedBooking = slotData[key];
                 if (typeof parkedBooking === 'object' && parkedBooking !== null) {
@@ -456,10 +453,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                             <View style={styles.detailRow}>
                                 <Text style={styles.detailLabel}>Exit Time:</Text>
                                 <Text style={styles.detailValue}>
-                                    {bookingData.rateType === 'hourly' 
-                                        ? formatTime(bookingData.exitTime) 
-                                        : '23:59'
-                                    }
+                                    {formatTime(bookingData.exitTime)} {/* ✅ แก้ไข: ใช้เวลาจริง */}
                                 </Text>
                             </View>
                         )}
@@ -544,11 +538,9 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                                 <TouchableOpacity
                                     style={[
                                         styles.barrierButton,
-                                        // 🔥 เพิ่มเงื่อนไขตรวจสอบเวลา
                                         (!isBarrierEnabled || showPayFineButton) ? { backgroundColor: '#B0BEC5' } : {},
                                     ]}
                                     onPress={handleControlBarrier}
-                                    // 🔥 ปิดปุ่มเมื่อไม่ใช่เวลาจองหรือมีค่าปรับ
                                     disabled={!isBarrierEnabled || showPayFineButton}
                                 >
                                     <Ionicons name="lock-open" size={20} color="white" />
@@ -562,7 +554,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* 🔥 แสดงข้อมูลช่วงเวลาจองเมื่อปุ่ม Barrier ใช้งานไม่ได้ */}
+                        {/* แสดงข้อมูลช่วงเวลาจองเมื่อปุ่ม Barrier ใช้งานไม่ได้ */}
                         {!isBarrierEnabled && bookingData.bookingType !== 'visitor' && (
                             <View style={styles.timeInfoContainer}>
                                 <Ionicons name="time-outline" size={16} color="#FF9800" />
@@ -575,7 +567,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                                     </Text>
                                 ) : (
                                     <Text style={styles.timeDetailText}>
-                                        {formatDate(bookingData.entryDate)} {bookingData.entryTime || '00:00'} - {formatDate(bookingData.exitDate)} 23:59
+                                        {formatDate(bookingData.entryDate)} {bookingData.entryTime || '00:00'} - {formatDate(bookingData.exitDate)} {bookingData.exitTime || '23:59'}
                                     </Text>
                                 )}
                             </View>
