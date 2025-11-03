@@ -54,7 +54,11 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
 
     // Logic ตรวจสอบเวลาเพื่อเปิด/ปิดปุ่ม Barrier
     useEffect(() => {
-        const checkBarrierAccessTime = () => {
+    const checkBarrierAccessTime = () => {
+        if (isPaidFine) {
+            setIsBarrierEnabled(true);
+            return;
+        }
             // ถ้าเป็น visitor booking ไม่ต้องตรวจสอบเวลา
             if (bookingData.bookingType === 'visitor') {
                 setIsBarrierEnabled(true);
@@ -112,7 +116,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
         // อัพเดททุกนาทีเพื่อตรวจสอบเวลาแบบ real-time
         const interval = setInterval(checkBarrierAccessTime, 60000);
         return () => clearInterval(interval);
-    }, [bookingData]);
+    }, [bookingData, isPaidFine]); // เพิ่ม isPaidFine เข้าไป
 
     // Logic แสดงปุ่ม Pay Fine
     useEffect(() => {

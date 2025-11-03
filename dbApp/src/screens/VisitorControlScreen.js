@@ -41,7 +41,7 @@ const VisitorControlScreen = ({ route, navigation }) => {
                 if (bookingSnap.exists()) {
                     const data = bookingSnap.val();
                     setBookingData(data);
-                    checkBarrierAccessTime(data);
+                    checkBarrierAccessTime(data, payFineStatus);
                 } else {
                     setErrorMessage("Booking not found.");
                 }
@@ -52,9 +52,13 @@ const VisitorControlScreen = ({ route, navigation }) => {
                 setErrorMessage("Failed to load booking data.");
                 setPageLoading(false);
             });
-    }, [sessionKey]);
+    }, [sessionKey, payFineStatus]);
 
-    const checkBarrierAccessTime = (bookingData) => {
+    const checkBarrierAccessTime = (bookingData, currentPayStatus) => {
+    if (currentPayStatus === 'paid') {
+        setIsBarrierEnabled(true);
+        return;
+    }
         if (!bookingData) return;
 
         const now = new Date();
@@ -108,7 +112,7 @@ const VisitorControlScreen = ({ route, navigation }) => {
                     setBarrierLocked(now > exitDateTime && payStatus !== 'paid');
                 }
 
-                checkBarrierAccessTime(data);
+                checkBarrierAccessTime(data, payStatus);
             })
             .catch(error => console.error('Failed to fetch payFineStatus:', error));
     };
