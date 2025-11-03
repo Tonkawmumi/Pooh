@@ -15,13 +15,11 @@ const VisitorControlScreen = ({ route, navigation }) => {
         ? sessionId.substring(0, sessionId.lastIndexOf('-')) 
         : sessionId;
 
-    // --- 1. STATES ---
     const [verificationStep, setVerificationStep] = useState('plate');
     const [pageLoading, setPageLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     
     const [inputPlate, setInputPlate] = useState('');
-    // 🔥 เปลี่ยนจาก inputOtp เป็น array 6 ตัว
     const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
     const [errorMessage, setErrorMessage] = useState('');
 
@@ -30,10 +28,9 @@ const VisitorControlScreen = ({ route, navigation }) => {
     const [bookingData, setBookingData] = useState(null);
     const [isBarrierEnabled, setIsBarrierEnabled] = useState(false);
 
-    // 🔥 สร้าง refs สำหรับ TextInput แต่ละช่อง
+    // สร้าง refs สำหรับ TextInput แต่ละช่อง
     const otpInputRefs = useRef([]);
 
-    // --- 2. useEffect เดิม ---
     useEffect(() => {
         if (!sessionKey) {
             setPageLoading(false);
@@ -161,7 +158,7 @@ const VisitorControlScreen = ({ route, navigation }) => {
         setActionLoading(false);
     };
 
-    // 🔥 ฟังก์ชันจัดการ OTP แบบใหม่
+    // ฟังก์ชันจัดการ OTP แบบใหม่
     const handleOtpChange = (value, index) => {
         // อนุญาตเฉพาะตัวเลข
         if (value && !/^\d+$/.test(value)) return;
@@ -219,6 +216,45 @@ const VisitorControlScreen = ({ route, navigation }) => {
             console.error("Error verifying OTP:", error);
             setErrorMessage(error.message);
         }
+        setActionLoading(false);
+    };
+
+    const handleResendOtp = async () => {
+        // ปิดปุ่มทั้งหมดและล้างข้อผิดพลาด
+        setActionLoading(true);
+        setErrorMessage('');
+        setOtpDigits(['', '', '', '', '', '']); // ล้าง OTP ที่พิมพ์ค้างไว้
+
+        try {
+            // เรียก API เพื่อส่ง OTP อีกครั้ง
+            const response = await fetch(`${VERCEL_API_URL}/api/send-otp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    bookingId: sessionKey
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to resend OTP.");
+            }
+            
+            // แจ้งเตือนผู้ใช้
+            Alert.alert("OTP Sent", `A new OTP has been sent to ${bookingData.visitorInfo.email}`);
+            
+            // ย้าย cursor ไปที่ช่องแรก
+            otpInputRefs.current[0]?.focus();
+
+        } catch (error) {
+            console.error("Error resending OTP:", error);
+            setErrorMessage(error.message);
+        }
+        
+        // เปิดปุ่มให้กดได้อีกครั้ง
         setActionLoading(false);
     };
 
@@ -327,7 +363,7 @@ const VisitorControlScreen = ({ route, navigation }) => {
         </ScrollView>
     );
 
-    // 🔥 แก้ไข renderOtpInput ให้เป็นช่องตัวเลข 6 ช่อง
+    // แก้ไข renderOtpInput ให้เป็นช่องตัวเลข 6 ช่อง
     const renderOtpInput = () => (
         <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.header}>
@@ -340,7 +376,7 @@ const VisitorControlScreen = ({ route, navigation }) => {
                     <Text style={styles.cardTitle}>Enter Verification Code</Text>
                 </View>
                 
-                {/* 🔥 OTP Input Boxes */}
+                {/* OTP Input Boxes */}
                 <View style={styles.otpContainer}>
                     {otpDigits.map((digit, index) => (
                         <TextInput
@@ -378,14 +414,18 @@ const VisitorControlScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                    onPress={() => {
-                        setVerificationStep('plate'); 
-                        setErrorMessage('');
-                        setOtpDigits(['', '', '', '', '', '']);
-                    }} 
+                    onPress={handleResendOtp} 
                     style={styles.linkButton}
+                    disabled={actionLoading} 
                 >
-                    <Text style={styles.linkButtonText}>Wrong License Plate?</Text>
+                    <Text 
+                        style={[
+                            styles.linkButtonText,
+                            actionLoading && styles.disabledLinkText
+                        ]}
+                    >
+                        Request OTP again
+                    </Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>
@@ -687,7 +727,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         textAlign: 'center',
     },
-    // 🔥 เพิ่ม styles สำหรับ OTP boxes
     otpContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -738,6 +777,10 @@ const styles = StyleSheet.create({
     linkButtonText: {
         color: '#2196F3',
         textDecorationLine: 'underline',
+    },
+    disabledLinkText: {
+        color: '#B0BEC5',
+        textDecorationLine: 'none',
     },
 });
 
