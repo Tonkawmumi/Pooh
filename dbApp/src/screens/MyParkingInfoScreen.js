@@ -73,7 +73,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
 
             const now = new Date();
             
-            // สำหรับ hourly - ใช้ entryDate+entryTime และ exitDate+exitTime จริง
+            // สำหรับ hourly - ใช้ entryDate + entryTime และ exitDate + exitTime จริง
             if (bookingData.rateType === 'hourly' && bookingData.exitTime) {
                 const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime}`);
                 const exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime}`);
@@ -85,7 +85,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                     setIsBarrierEnabled(false);
                 }
             }
-            // สำหรับ daily - ใช้ entryDate+entryTime และ exitDate+exitTime จริง
+            // สำหรับ daily - ใช้ entryDate + entryTime และ exitDate + exitTime จริง
             else if (bookingData.rateType === 'daily') {
                 const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime || '00:00'}`);
                 const exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime || '23:59'}`);
@@ -97,7 +97,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
                     setIsBarrierEnabled(false);
                 }
             }
-            // สำหรับ monthly - ใช้ entryDate+entryTime และ exitDate+exitTime จริง
+            // สำหรับ monthly - ใช้ entryDate + entryTime และ exitDate + exitTime จริง
             else if (bookingData.rateType === 'monthly') {
                 const entryDateTime = new Date(`${bookingData.entryDate}T${bookingData.entryTime || '00:00'}`);
                 const exitDateTime = new Date(`${bookingData.exitDate}T${bookingData.exitTime || '23:59'}`);
@@ -189,7 +189,7 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
         checkPayFineDailyMonthly();
     }, [bookingData, isPaidFine, now]);
 
-    // Helper function to get discount percentage
+    // คูปอง
     const getDiscountPercentage = (discountType) => {
         switch (discountType) {
             case 'hourly': return 10;
@@ -226,11 +226,9 @@ const MyParkingInfoScreen = ({ route, navigation }) => {
             } else {
                 message += `\n\nYour booking period:\n${formatDate(bookingData.entryDate)} ${bookingData.entryTime || '00:00'} - ${formatDate(bookingData.exitDate)} ${bookingData.exitTime || '23:59'}`;
             }
-            
             Alert.alert("Barrier Access Not Available", message);
             return;
         }
-        
         setShowBarrierModal(true);
     };
 
@@ -849,11 +847,11 @@ const styles = StyleSheet.create({
         borderColor: '#FFB74D',
     },
     payFineWarning: {
-        backgroundColor: '#FFEBEE', // สีแดงอ่อน
-        borderColor: '#FFCDD2', // ขอบสีแดง
+        backgroundColor: '#FFEBEE',
+        borderColor: '#FFCDD2',
     },
     payFineWarningText: {
-        color: '#D32F2F', // สีแดงเข้ม
+        color: '#D32F2F',
         fontWeight: 'bold',
     },
     timeInfoText: {

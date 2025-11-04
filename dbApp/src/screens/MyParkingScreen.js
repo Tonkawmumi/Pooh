@@ -16,7 +16,7 @@ const MyParkingScreen = ({ route, navigation }) => {
   const activeReminderBookings = useRef(new Set());
   const [relocationSlot, setRelocationSlot] = useState(null);
   const [originalBooking, setOriginalBooking] = useState(null);
-  const [handledOverstayBookings, setHandledOverstayBookings] = useState(new Set()); // <-- State ป้องกัน Modal เด้งซ้ำ (ต่อการจอง)
+  const [handledOverstayBookings, setHandledOverstayBookings] = useState(new Set()); // State ป้องกัน Modal เด้งซ้ำ (ต่อการจอง)
   const [showParkingProblemModal, setShowParkingProblemModal] = useState(false);
 
   // ฟังก์ชัน push notification โดยตรง (ไม่มีการเช็กซ้ำ)
@@ -490,7 +490,7 @@ const MyParkingScreen = ({ route, navigation }) => {
 
   // ฟังก์ชันเช็กเกินเวลา
   const checkOverstayAndTriggerRelocation = async () => {
-    if (showParkingProblemModal) return; // <-- ตรวจสอบแค่ว่า Modal เปิดอยู่หรือไม่
+    if (showParkingProblemModal) return; // ตรวจสอบแค่ว่า Modal เปิดอยู่หรือไม่
 
     const now = new Date();
     const activeBookings = bookingsRef.current; // Booking ของ User ปัจจุบัน
@@ -674,7 +674,7 @@ const MyParkingScreen = ({ route, navigation }) => {
       return; // ไม่มีปัญหา
     }
 
-    // ถ้าเจอ, ค้นหา booking ที่ active อยู่ซึ่งตรงกับ notification
+    // ถ้าเจอให้ ค้นหา booking ที่ active อยู่ ซึ่งตรงกับ notification
     const bookingToMove = activeBookings.find(
       (b) =>
         b.slotId === problemNotification.slotId &&
@@ -721,7 +721,6 @@ const MyParkingScreen = ({ route, navigation }) => {
     
     setShowParkingProblemModal(true);
   };
-
 
 
   // ดึงข้อมูลการจอง, Notifications และ Coupons ของผู้ใช้
@@ -834,7 +833,7 @@ const MyParkingScreen = ({ route, navigation }) => {
     for (const booking of activeBookings) {
       if (!booking.rateType) continue;
 
-      // สำหรับ Hourly และ Daily - แจ้งเตือน 10 นาทีก่อน exitTime
+      // สำหรับ Hourly และ Daily ให้ แจ้งเตือน 10 นาทีก่อน exitTime
       if (
         (booking.rateType === "hourly" || booking.rateType === "daily") &&
         booking.entryDate &&
@@ -879,7 +878,7 @@ const MyParkingScreen = ({ route, navigation }) => {
     const intervalId = setInterval(() => {
       checkBookingReminders();
       checkOverstayAndTriggerRelocation();
-    }, 30000); // 30 วินาที
+    }, 30000);
 
     return () => {
       unsubscribeFocus();

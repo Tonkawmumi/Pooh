@@ -124,7 +124,7 @@ const NotificationsScreen = ({ route, navigation }) => {
     let displayName = "";
     
     if (item.bookingType === "visitor") {
-      // สำหรับ visitor ให้แสดง visitorUsername แทน
+      // สำหรับ visitor ให้แสดง visitorUsername
       displayName = item.visitorUsername || item.visitorInfo?.visitorUsername || "Visitor";
     } else {
       // สำหรับ resident ให้แสดง username ตามปกติ

@@ -26,7 +26,7 @@ const MyCouponScreen = ({ route, navigation }) => {
       const snapshot = await get(child(ref(db), "coupons"));
       const data = snapshot.val() || {};
 
-      // กรองเฉพาะคูปองของ user นี้และยังไม่หมดอายุ
+      // กรองเฉพาะคูปองของ user นี้ และยังไม่หมดอายุ
       const userCoupons = Object.entries(data)
         .map(([id, coupon]) => ({
           id,

@@ -13,7 +13,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     try {
-      // login ด้วย email + password
+      // login ด้วย email และ password
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userId = userCredential.user.uid;
 

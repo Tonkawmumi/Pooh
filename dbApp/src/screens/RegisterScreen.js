@@ -7,18 +7,23 @@ import { auth, db } from "../firebaseConfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, set, get, child } from "firebase/database";
 
+// ฟังก์ชันตรวจสอบว่าชื่อผู้ใช้ (username) ซ้ำหรือไม่
 const isUsernameAvailable = async (name) => {
+  // ถ้าไม่มีชื่อ หรือเป็นช่องว่าง -> ถือว่าใช้ได้ (ไม่ต้องตรวจ)
   if (!name || name.trim() === "") return true; 
+
+  // แปลงชื่อเป็นตัวพิมพ์เล็ก เพื่อป้องกันปัญหาชื่อซ้ำแบบตัวเล็ก/ใหญ่ต่างกัน
   const searchName = name.toLowerCase();
 
   try {
     const usersSnapshot = await get(child(ref(db), "users"));
     if (usersSnapshot.exists()) {
       const usersData = usersSnapshot.val();
+      // ตรวจว่า username ซ้ำหรือไม่
       const userExists = Object.values(usersData).some(
         (user) => user.username && user.username.toLowerCase() === searchName
       );
-      if (userExists) return false;
+      if (userExists) return false; // ถ้าซ้ำ -> ใช้ไม่ได้
     }
 
     const visitorsSnapshot = await get(child(ref(db), "visitors"));
@@ -27,15 +32,15 @@ const isUsernameAvailable = async (name) => {
       const visitorExists = Object.values(visitorsData).some(
         (visitor) => visitor.visitorUsername && visitor.visitorUsername.toLowerCase() === searchName
       );
-      if (visitorExists) return false;
+      if (visitorExists) return false; // ถ้าซ้ำ -> ใช้ไม่ได้
     }
 
+    // ถ้าไม่ซ้ำทั้งใน users และ visitors
     return true; 
+
   } catch (error) {
     console.error("Error checking username:", error);
-    // ⭐️⭐️⭐️ จุดที่แก้ไข ⭐️⭐️⭐️
-    // โยน Error ออกไปให้ handleRegister จัดการ
-    // แทนที่จะ return false (ซึ่งแปลว่าชื่อซ้ำ)
+    // โยน Error กลับไปให้ฟังก์ชันที่เรียกใช้ (handleRegister) จัดการต่อ
     throw new Error("Could not verify username. Check database rules or network.");
   }
 };

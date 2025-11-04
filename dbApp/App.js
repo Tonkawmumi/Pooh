@@ -48,7 +48,7 @@ const linking = {
       MyParking: 'my-parking',
       MyParkingInfo: 'my-parking-info',
       InviteLink: 'invite-link',
-      // สำคัญ: กำหนด path สำหรับ VisitorControl ให้รับ parameter
+      // กำหนด path สำหรับ VisitorControl ให้รับ parameter
       VisitorControl: {
         path: 'visitor/:sessionId',
         parse: {

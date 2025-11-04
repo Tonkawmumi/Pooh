@@ -24,13 +24,13 @@ const InviteLinkScreen = ({ route, navigation }) => {
         navigation.goBack();
     };
 
-    // แก้ไขฟังก์ชัน shareLink ให้ใช้ Share API แทน
+    // ฟังก์ชัน shareLink ใช้ Share API 
     const shareLink = async () => {
         if (!inviteLink) return;
         try {
             await Share.share({
                 message: `You have received a link to access the parking service: ${inviteLink}`,
-                url: inviteLink, // สำหรับ iOS
+                url: inviteLink,
                 title: 'Parking Access Link'
             });
         } catch (error) {
@@ -124,13 +124,11 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#B19CD8',
     },
-
     scrollContainer: {
         padding: 20,
         paddingTop: 60,
         alignItems: 'center',
     },
-
     backButton: {
         position: 'absolute',
         top: 40,
@@ -138,13 +136,11 @@ const styles = StyleSheet.create({
         zIndex: 1,
         padding: 8,
     },
-
     header: {
         alignItems: 'center',
         marginBottom: 30,
         marginTop: 10,
     },
-
     title: {
         fontSize: 28,
         fontWeight: 'bold',
@@ -152,13 +148,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 8,
     },
-
     subtitle: {
         fontSize: 16,
         color: 'rgba(255, 255, 255, 0.8)',
         textAlign: 'center',
     },
-
     infoCard: {
         backgroundColor: 'white',
         borderRadius: 15,
@@ -171,20 +165,17 @@ const styles = StyleSheet.create({
         shadowRadius: 3.84,
         elevation: 5,
     },
-
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 15,
     },
-
     cardTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#2D3748',
         marginLeft: 10,
     },
-
     linkContainer: {
         backgroundColor: '#F7FAFC',
         borderRadius: 10,
@@ -193,21 +184,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
-
     linkText: {
         fontSize: 12,
         color: '#2D3748',
         fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
         lineHeight: 18,
     },
-
     linkActions: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         gap: 10,
         marginBottom: 15,
     },
-
     shareButton: {
         backgroundColor: '#2196F3',
         padding: 12,
@@ -218,13 +206,11 @@ const styles = StyleSheet.create({
         gap: 8,
         flex: 1,
     },
-
     shareButtonText: {
         color: 'white',
         fontWeight: '600',
         fontSize: 14,
     },
-
     regenerateButton: {
         backgroundColor: '#F8F9FA',
         padding: 10,
@@ -236,13 +222,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
-
     regenerateButtonText: {
         color: '#666',
         fontWeight: '500',
         fontSize: 14,
     },
-
     instructionsCard: {
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderRadius: 15,
@@ -250,14 +234,12 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         width: '100%',
     },
-
     instructionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#2D3748',
         marginBottom: 10,
     },
-
     instructionText: {
         fontSize: 14,
         color: '#4A5568',

@@ -161,7 +161,7 @@ const VisitorControlScreen = ({ route, navigation }) => {
         setActionLoading(false);
     };
 
-    // ฟังก์ชันจัดการ OTP แบบใหม่
+    // ฟังก์ชันจัดการ OTP
     const handleOtpChange = (value, index) => {
         // อนุญาตเฉพาะตัวเลข
         if (value && !/^\d+$/.test(value)) return;
@@ -648,11 +648,11 @@ const styles = StyleSheet.create({
         borderColor: '#FFB74D',
     },
     payFineWarning: {
-        backgroundColor: '#FFEBEE', // สีแดงอ่อน
-        borderColor: '#FFCDD2', // ขอบสีแดง
+        backgroundColor: '#FFEBEE',
+        borderColor: '#FFCDD2',
     },
     payFineWarningText: {
-        color: '#D32F2F', // สีแดงเข้ม
+        color: '#D32F2F',
         fontWeight: 'bold',
     },
     timeInfoText: {
